@@ -244,6 +244,7 @@ function renderResults(dae, lat, lon) {
   if (dae.length === 0) {
     document.getElementById('empty').style.display = 'block';
     setStatus('Nessun defibrillatore trovato nel raggio di 2 km.');
+    map.setView([lat, lon], 14);
     return;
   }
 
@@ -335,7 +336,6 @@ function initMap(lat, lon) {
     icon: L.divIcon({ html: myEl, className: '', iconSize: [18, 18], iconAnchor: [9, 9] }),
     zIndexOffset: 1000
   }).addTo(map).bindPopup('<b>Sei qui</b>');
-  map.setView([lat, lon], 14);
 }
 
 function buildAddr(t) {
