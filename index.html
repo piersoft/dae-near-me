@@ -6,276 +6,119 @@
 <title>DAE Near Me</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap');
+:root {
+  --red: #E63946;
+  --red-dark: #C1121F;
+  --red-light: #FFE5E7;
+  --bg: #F8F5F0;
+  --card: #FFFFFF;
+  --text: #1A1A1A;
+  --muted: #6B6B6B;
+  --border: #E8E4DE;
+  --green: #2D9B6F;
+  --green-light: #E6F5EF;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; overflow-x: hidden; }
 
-  :root {
-    --red: #E63946;
-    --red-dark: #C1121F;
-    --red-light: #FFE5E7;
-    --bg: #F8F5F0;
-    --card: #FFFFFF;
-    --text: #1A1A1A;
-    --muted: #6B6B6B;
-    --border: #E8E4DE;
-    --green: #2D9B6F;
-    --green-light: #E6F5EF;
-    --pulse-color: rgba(230, 57, 70, 0.4);
-  }
+.header {
+  background: var(--red); color: white; padding: 16px 20px 14px;
+  position: sticky; top: 0; z-index: 1000;
+  display: flex; align-items: center; gap: 12px;
+  box-shadow: 0 2px 12px rgba(230,57,70,0.35);
+}
+.header-icon {
+  width: 36px; height: 36px; background: white; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.header-icon svg { width: 22px; height: 22px; }
+.header-title { font-size: 18px; font-weight: 600; letter-spacing: -0.3px; }
+.header-sub { font-size: 12px; opacity: 0.85; font-weight: 300; }
 
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+#locate-btn {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+  margin: 32px auto 24px; width: 160px; height: 160px; border-radius: 50%;
+  border: none; background: var(--red); color: white; cursor: pointer;
+  position: relative; box-shadow: 0 8px 30px rgba(230,57,70,0.4);
+  transition: transform 0.15s, box-shadow 0.15s; -webkit-tap-highlight-color: transparent;
+}
+#locate-btn:active { transform: scale(0.95); }
+.btn-icon { font-size: 40px; line-height: 1; }
+.btn-label { font-size: 13px; font-weight: 500; letter-spacing: 0.5px; text-transform: uppercase; }
 
-  body {
-    font-family: 'DM Sans', sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    min-height: 100vh;
-    overflow-x: hidden;
-  }
+#locate-btn::before, #locate-btn::after {
+  content: ''; position: absolute; border-radius: 50%;
+  border: 2px solid rgba(230,57,70,0.4); animation: pulse 2s ease-out infinite;
+  width: 100%; height: 100%;
+}
+#locate-btn::after { animation-delay: 0.7s; }
+@keyframes pulse { 0% { transform: scale(1); opacity: 0.7; } 100% { transform: scale(1.6); opacity: 0; } }
+#locate-btn.loading::before, #locate-btn.loading::after { animation: none; }
 
-  /* ── HEADER ── */
-  .header {
-    background: var(--red);
-    color: white;
-    padding: 16px 20px 14px;
-    position: sticky;
-    top: 0;
-    z-index: 1000;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    box-shadow: 0 2px 12px rgba(230,57,70,0.35);
-  }
-  .header-icon {
-    width: 36px; height: 36px;
-    background: white;
-    border-radius: 10px;
-    display: flex; align-items: center; justify-content: center;
-    flex-shrink: 0;
-  }
-  .header-icon svg { width: 22px; height: 22px; }
-  .header-title { font-size: 18px; font-weight: 600; letter-spacing: -0.3px; }
-  .header-sub { font-size: 12px; opacity: 0.85; font-weight: 300; }
+#status { text-align: center; font-size: 14px; color: var(--muted); padding: 0 24px 24px; min-height: 22px; }
+#status.error { color: var(--red-dark); }
 
-  /* ── MAIN BUTTON ── */
-  #locate-btn {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    margin: 32px auto 24px;
-    width: 160px; height: 160px;
-    border-radius: 50%;
-    border: none;
-    background: var(--red);
-    color: white;
-    cursor: pointer;
-    position: relative;
-    box-shadow: 0 8px 30px rgba(230,57,70,0.4);
-    transition: transform 0.15s, box-shadow 0.15s;
-    -webkit-tap-highlight-color: transparent;
-  }
-  #locate-btn:active { transform: scale(0.95); box-shadow: 0 4px 16px rgba(230,57,70,0.3); }
-  #locate-btn .btn-icon { font-size: 40px; line-height: 1; }
-  #locate-btn .btn-label { font-size: 13px; font-weight: 500; letter-spacing: 0.5px; text-transform: uppercase; }
+#map-container {
+  display: none; margin: 0 16px 16px; border-radius: 18px; overflow: hidden;
+  border: 1.5px solid var(--border); box-shadow: 0 4px 20px rgba(0,0,0,0.08); position: relative;
+}
+#map { height: 260px; }
+.map-label {
+  position: absolute; top: 10px; left: 10px;
+  background: rgba(255,255,255,0.92); backdrop-filter: blur(4px);
+  border-radius: 8px; padding: 4px 10px; font-size: 11px; font-weight: 600;
+  letter-spacing: 0.5px; color: var(--red); z-index: 500; text-transform: uppercase;
+}
 
-  /* pulse rings */
-  #locate-btn::before, #locate-btn::after {
-    content: '';
-    position: absolute;
-    border-radius: 50%;
-    border: 2px solid var(--pulse-color);
-    animation: pulse 2s ease-out infinite;
-  }
-  #locate-btn::before { width: 100%; height: 100%; animation-delay: 0s; }
-  #locate-btn::after  { width: 100%; height: 100%; animation-delay: 0.7s; }
-  @keyframes pulse {
-    0%   { transform: scale(1); opacity: 0.7; }
-    100% { transform: scale(1.6); opacity: 0; }
-  }
-  #locate-btn.loading::before, #locate-btn.loading::after { animation: none; }
-  #locate-btn.loading { animation: spin-pulse 1.2s ease-in-out infinite; }
-  @keyframes spin-pulse {
-    0%,100% { box-shadow: 0 8px 30px rgba(230,57,70,0.4); }
-    50%      { box-shadow: 0 8px 48px rgba(230,57,70,0.7); }
-  }
+#list-section { display: none; padding: 0 16px 100px; }
+.section-header { display: flex; align-items: baseline; gap: 8px; margin-bottom: 12px; }
+.section-title { font-size: 13px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); }
+.count-badge { background: var(--red-light); color: var(--red-dark); font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 99px; }
 
-  /* ── STATUS ── */
-  #status {
-    text-align: center;
-    font-size: 14px;
-    color: var(--muted);
-    padding: 0 24px 24px;
-    min-height: 22px;
-  }
-  #status.error { color: var(--red-dark); }
+.dae-card {
+  background: var(--card); border-radius: 16px; border: 1.5px solid var(--border);
+  padding: 16px; margin-bottom: 10px; display: flex; align-items: stretch; gap: 14px;
+  cursor: pointer; transition: transform 0.12s, box-shadow 0.12s; -webkit-tap-highlight-color: transparent;
+}
+.dae-card:active { transform: scale(0.98); }
+.dae-card.nearby { border-color: rgba(230,57,70,0.35); }
 
-  /* ── MAP ── */
-  #map-container {
-    display: none;
-    margin: 0 16px 16px;
-    border-radius: 18px;
-    overflow: hidden;
-    border: 1.5px solid var(--border);
-    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-    position: relative;
-  }
-  #map { height: 260px; }
-  .map-label {
-    position: absolute;
-    top: 10px; left: 10px;
-    background: rgba(255,255,255,0.92);
-    backdrop-filter: blur(4px);
-    border-radius: 8px;
-    padding: 4px 10px;
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.5px;
-    color: var(--red);
-    z-index: 500;
-    text-transform: uppercase;
-  }
+.card-rank { font-family: 'Space Mono', monospace; font-size: 11px; font-weight: 700; color: var(--muted); min-width: 20px; padding-top: 2px; }
+.card-rank.top { color: var(--red); }
+.card-icon { width: 44px; height: 44px; border-radius: 12px; background: var(--red-light); display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 22px; }
+.card-icon.green { background: var(--green-light); }
+.card-body { flex: 1; min-width: 0; }
+.card-name { font-size: 15px; font-weight: 500; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.card-address { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 6px; }
+.card-tags { display: flex; gap: 5px; flex-wrap: wrap; }
+.tag { font-size: 10px; font-weight: 600; letter-spacing: 0.3px; padding: 2px 7px; border-radius: 99px; text-transform: uppercase; }
+.tag-access { background: #EEF2FF; color: #4338CA; }
+.tag-indoor  { background: #F0FDF4; color: #166534; }
+.tag-outdoor { background: #FFFBEB; color: #92400E; }
+.tag-24h     { background: var(--green-light); color: var(--green); }
+.tag-brand   { background: #F5F5F5; color: #444; }
 
-  /* ── LIST ── */
-  #list-section { display: none; padding: 0 16px 100px; }
+.card-dist { text-align: right; flex-shrink: 0; display: flex; flex-direction: column; align-items: flex-end; justify-content: center; }
+.dist-num { font-family: 'Space Mono', monospace; font-size: 18px; font-weight: 700; color: var(--red); line-height: 1; }
+.dist-num.far { color: var(--muted); }
+.dist-unit { font-size: 10px; color: var(--muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
 
-  .section-header {
-    display: flex;
-    align-items: baseline;
-    gap: 8px;
-    margin-bottom: 12px;
-  }
-  .section-title {
-    font-size: 13px;
-    font-weight: 600;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    color: var(--muted);
-  }
-  .count-badge {
-    background: var(--red-light);
-    color: var(--red-dark);
-    font-size: 12px;
-    font-weight: 600;
-    padding: 2px 8px;
-    border-radius: 99px;
-  }
+#empty { display: none; text-align: center; padding: 40px 24px; }
+#empty .emoji { font-size: 48px; margin-bottom: 12px; }
+#empty p { color: var(--muted); font-size: 14px; }
 
-  .dae-card {
-    background: var(--card);
-    border-radius: 16px;
-    border: 1.5px solid var(--border);
-    padding: 16px;
-    margin-bottom: 10px;
-    display: flex;
-    align-items: stretch;
-    gap: 14px;
-    cursor: pointer;
-    transition: transform 0.12s, box-shadow 0.12s, border-color 0.12s;
-    -webkit-tap-highlight-color: transparent;
-  }
-  .dae-card:active { transform: scale(0.98); }
-  .dae-card.nearby { border-color: rgba(230,57,70,0.3); }
-
-  .card-rank {
-    font-family: 'Space Mono', monospace;
-    font-size: 11px;
-    font-weight: 700;
-    color: var(--muted);
-    min-width: 20px;
-    padding-top: 2px;
-  }
-  .card-rank.top { color: var(--red); }
-
-  .card-icon {
-    width: 44px; height: 44px;
-    border-radius: 12px;
-    background: var(--red-light);
-    display: flex; align-items: center; justify-content: center;
-    flex-shrink: 0;
-    font-size: 22px;
-  }
-  .card-icon.green { background: var(--green-light); }
-
-  .card-body { flex: 1; min-width: 0; }
-  .card-name {
-    font-size: 15px;
-    font-weight: 500;
-    margin-bottom: 3px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .card-address {
-    font-size: 12px;
-    color: var(--muted);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    margin-bottom: 6px;
-  }
-
-  .card-tags { display: flex; gap: 5px; flex-wrap: wrap; }
-  .tag {
-    font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 0.3px;
-    padding: 2px 7px;
-    border-radius: 99px;
-    text-transform: uppercase;
-  }
-  .tag-access   { background: #EEF2FF; color: #4338CA; }
-  .tag-indoor   { background: #F0FDF4; color: #166534; }
-  .tag-outdoor  { background: #FFFBEB; color: #92400E; }
-  .tag-24h      { background: var(--green-light); color: var(--green); }
-  .tag-brand    { background: #F5F5F5; color: #444; }
-
-  .card-dist {
-    text-align: right;
-    flex-shrink: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    justify-content: center;
-  }
-  .dist-num {
-    font-family: 'Space Mono', monospace;
-    font-size: 18px;
-    font-weight: 700;
-    color: var(--red);
-    line-height: 1;
-  }
-  .dist-num.far { color: var(--muted); }
-  .dist-unit {
-    font-size: 10px;
-    color: var(--muted);
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-
-  /* ── EMPTY ── */
-  #empty { display: none; text-align: center; padding: 40px 24px; }
-  #empty .emoji { font-size: 48px; margin-bottom: 12px; }
-  #empty p { color: var(--muted); font-size: 14px; }
-
-  /* ── LEAFLET TWEAKS ── */
-  .leaflet-popup-content-wrapper { border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); }
-  .leaflet-popup-tip { display: none; }
-  .popup-body { font-family: 'DM Sans', sans-serif; font-size: 13px; line-height: 1.5; padding: 2px 0; }
-  .popup-name { font-weight: 600; font-size: 14px; margin-bottom: 4px; color: var(--red); }
-  .popup-nav  { display: inline-block; margin-top: 6px; background: var(--red); color: white;
-                 font-size: 12px; font-weight: 600; padding: 5px 12px; border-radius: 8px;
-                 text-decoration: none; }
-
-  /* custom markers */
-  .my-dot { width: 18px; height: 18px; background: #4285F4; border: 3px solid white;
-             border-radius: 50%; box-shadow: 0 0 0 4px rgba(66,133,244,0.3); }
-  .dae-dot { width: 28px; height: 28px; background: var(--red); border: 3px solid white;
-              border-radius: 50%; box-shadow: 0 2px 8px rgba(230,57,70,0.5);
-              display: flex; align-items: center; justify-content: center;
-              font-size: 13px; color: white; }
-  .dae-dot.highlight { background: var(--red-dark); transform: scale(1.2); z-index: 999; }
+.leaflet-popup-content-wrapper { border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); }
+.leaflet-popup-tip { display: none; }
+.popup-body { font-family: 'DM Sans', sans-serif; font-size: 13px; line-height: 1.5; padding: 2px 0; }
+.popup-name { font-weight: 600; font-size: 14px; margin-bottom: 4px; color: #E63946; }
+.popup-nav {
+  display: inline-block; margin-top: 6px; background: #E63946; color: white;
+  font-size: 12px; font-weight: 600; padding: 5px 12px; border-radius: 8px; text-decoration: none;
+}
+.my-dot { width: 18px; height: 18px; background: #4285F4; border: 3px solid white; border-radius: 50%; box-shadow: 0 0 0 4px rgba(66,133,244,0.3); }
+.dae-dot { width: 28px; height: 28px; background: #E63946; border: 3px solid white; border-radius: 50%; box-shadow: 0 2px 8px rgba(230,57,70,0.5); display: flex; align-items: center; justify-content: center; font-size: 13px; color: white; }
+.dae-dot.highlight { background: #C1121F; width: 34px; height: 34px; }
 </style>
 </head>
 <body>
@@ -294,15 +137,15 @@
   </div>
 </div>
 
-<button id="locate-btn" onclick="locate()">
-  <span class="btn-icon">📍</span>
-  <span class="btn-label">Trova DAE</span>
+<button id="locate-btn" onclick="locateMe()">
+  <span class="btn-icon">&#128205;</span>
+  <span class="btn-label" id="btn-label-text">Trova DAE</span>
 </button>
 
 <div id="status">Premi il pulsante per rilevare la tua posizione</div>
 
 <div id="map-container">
-  <div class="map-label">🗺 Mappa</div>
+  <div class="map-label">Mappa</div>
   <div id="map"></div>
 </div>
 
@@ -315,65 +158,82 @@
 </div>
 
 <div id="empty">
-  <div class="emoji">😔</div>
-  <p>Nessun defibrillatore trovato entro 2 km.<br>Prova in un'altra posizione.</p>
+  <div class="emoji">&#128532;</div>
+  <p>Nessun defibrillatore trovato entro 2 km.<br>Prova in un altra posizione.</p>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-let map, userLat, userLon, markers = [], myMarker;
+var map = null;
+var myMarker = null;
+var markers = [];
 
-function locate() {
-  const btn = document.getElementById('locate-btn');
+function locateMe() {
+  var btn = document.getElementById('locate-btn');
   btn.classList.add('loading');
-  btn.querySelector('.btn-label').textContent = 'Ricerca…';
-  setStatus('Rilevamento posizione GPS…');
+  document.getElementById('btn-label-text').textContent = 'Ricerca...';
+  setStatus('Rilevamento posizione GPS...');
 
   if (!navigator.geolocation) {
     setStatus('GPS non supportato da questo browser.', true);
-    reset();
+    resetBtn();
     return;
   }
 
-  navigator.geolocation.getCurrentPosition(pos => {
-    userLat = pos.coords.latitude;
-    userLon = pos.coords.longitude;
-    setStatus('Posizione trovata. Scarico dati DAE…');
-    fetchDAE(userLat, userLon);
-  }, err => {
-    const msgs = {1:'Permesso GPS negato. Consenti l\'accesso alla posizione.',
-                   2:'Posizione non disponibile.', 3:'Timeout GPS.'};
-    setStatus(msgs[err.code] || 'Errore GPS.', true);
-    reset();
-  }, { enableHighAccuracy: true, timeout: 10000 });
+  navigator.geolocation.getCurrentPosition(
+    function(pos) {
+      var lat = pos.coords.latitude;
+      var lon = pos.coords.longitude;
+      setStatus('Posizione trovata. Scarico dati DAE...');
+      fetchDAE(lat, lon);
+    },
+    function(err) {
+      var msgs = {
+        1: 'Permesso GPS negato. Consenti accesso alla posizione.',
+        2: 'Posizione non disponibile.',
+        3: 'Timeout GPS. Riprova.'
+      };
+      setStatus(msgs[err.code] || 'Errore GPS.', true);
+      resetBtn();
+    },
+    { enableHighAccuracy: true, timeout: 10000 }
+  );
 }
 
 function fetchDAE(lat, lon) {
-  const R = 2000; // 2km in meters → bbox degrees ~0.018
-  const d = 0.018;
-  const bbox = `${lat-d},${lon-d},${lat+d},${lon+d}`;
-  const query = `[out:json][timeout:25];nwr["emergency"="defibrillator"](${bbox});out geom;`;
-  const url = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`;
+  var R = 2000;
+  var d = 0.018;
+  var bbox = (lat - d) + ',' + (lon - d) + ',' + (lat + d) + ',' + (lon + d);
+  var query = '[out:json][timeout:25];nwr["emergency"="defibrillator"](' + bbox + ');out geom;';
+  var url = 'https://overpass-api.de/api/interpreter?data=' + encodeURIComponent(query);
 
   fetch(url)
-    .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
-    .then(data => {
-      const elements = data.elements || [];
-      const dae = elements.map(el => {
-        let elat = el.lat ?? el.center?.lat;
-        let elon = el.lon ?? el.center?.lon;
-        if (!elat || !elon) return null;
-        const dist = haversine(lat, lon, elat, elon);
-        if (dist > R) return null;
-        return { ...el, _lat: elat, _lon: elon, _dist: dist };
-      }).filter(Boolean).sort((a,b) => a._dist - b._dist);
-
-      reset();
+    .then(function(r) {
+      if (!r.ok) { throw new Error('HTTP ' + r.status); }
+      return r.json();
+    })
+    .then(function(data) {
+      var elements = data.elements || [];
+      var dae = [];
+      for (var i = 0; i < elements.length; i++) {
+        var el = elements[i];
+        var elat = el.lat !== undefined ? el.lat : (el.center ? el.center.lat : null);
+        var elon = el.lon !== undefined ? el.lon : (el.center ? el.center.lon : null);
+        if (elat === null || elon === null) continue;
+        var dist = haversine(lat, lon, elat, elon);
+        if (dist > R) continue;
+        el._lat = elat;
+        el._lon = elon;
+        el._dist = dist;
+        dae.push(el);
+      }
+      dae.sort(function(a, b) { return a._dist - b._dist; });
+      resetBtn();
       renderResults(dae, lat, lon);
     })
-    .catch(err => {
+    .catch(function(err) {
       setStatus('Errore nel recupero dati: ' + err.message, true);
-      reset();
+      resetBtn();
     });
 }
 
@@ -389,129 +249,146 @@ function renderResults(dae, lat, lon) {
 
   document.getElementById('list-section').style.display = 'block';
   document.getElementById('count-badge').textContent = dae.length;
-  setStatus(`${dae.length} defibrillatore${dae.length>1?'i':''} trovato${dae.length>1?'i':''} entro 2 km`);
+  var plural = dae.length > 1 ? 'i' : '';
+  setStatus(dae.length + ' defibrillatore' + plural + ' trovato' + plural + ' entro 2 km');
 
-  const list = document.getElementById('list');
+  var list = document.getElementById('list');
   list.innerHTML = '';
 
-  dae.forEach((el, i) => {
-    const t = el.tags || {};
-    const name = t.name || t['name:it'] || t['brand'] || 'Defibrillatore DAE';
-    const addr = buildAddr(t) || `${el._lat.toFixed(5)}, ${el._lon.toFixed(5)}`;
-    const distStr = el._dist >= 1000
-      ? (el._dist/1000).toFixed(1) + ' km'
-      : Math.round(el._dist) + ' m';
-    const distNum = el._dist >= 1000 ? (el._dist/1000).toFixed(1) : Math.round(el._dist);
-    const distUnit = el._dist >= 1000 ? 'km' : 'm';
-    const isFar = el._dist > 800;
-    const isNearby = el._dist < 300;
+  for (var i = 0; i < dae.length; i++) {
+    (function(el, idx) {
+      var t = el.tags || {};
+      var name = t['name'] || t['name:it'] || t['brand'] || t['operator'] || 'Defibrillatore DAE';
+      var addr = buildAddr(t) || (el._lat.toFixed(5) + ', ' + el._lon.toFixed(5));
+      var isFar = el._dist > 800;
+      var isNearby = el._dist < 300;
+      var distNum = el._dist >= 1000 ? (el._dist / 1000).toFixed(1) : Math.round(el._dist).toString();
+      var distUnit = el._dist >= 1000 ? 'km' : 'm';
 
-    // marker
-    const markerEl = document.createElement('div');
-    markerEl.className = 'dae-dot' + (i===0?' highlight':'');
-    markerEl.textContent = '♥';
-    const icon = L.divIcon({ html: markerEl, className:'', iconSize:[28,28], iconAnchor:[14,14] });
-    const marker = L.marker([el._lat, el._lon], { icon }).addTo(map);
+      var markerEl = document.createElement('div');
+      markerEl.className = 'dae-dot' + (idx === 0 ? ' highlight' : '');
+      markerEl.textContent = '\u2665';
+      var icon = L.divIcon({ html: markerEl, className: '', iconSize: [28, 28], iconAnchor: [14, 14] });
+      var marker = L.marker([el._lat, el._lon], { icon: icon }).addTo(map);
 
-    const popupHtml = `<div class="popup-body">
-      <div class="popup-name">${name}</div>
-      <div>${addr}</div>
-      <div style="color:#888;font-size:11px;margin-top:2px">📏 ${distStr}</div>
-      <a class="popup-nav" href="https://www.google.com/maps/dir/?api=1&destination=${el._lat},${el._lon}" target="_blank">Naviga →</a>
-    </div>`;
-    marker.bindPopup(popupHtml, { maxWidth: 240 });
-    markers.push(marker);
+      var navUrl = 'https://www.google.com/maps/dir/?api=1&destination=' + el._lat + ',' + el._lon;
+      var popupHtml = '<div class="popup-body">' +
+        '<div class="popup-name">' + escHtml(name) + '</div>' +
+        '<div>' + escHtml(addr) + '</div>' +
+        '<div style="color:#888;font-size:11px;margin-top:2px">Distanza: ' + distNum + ' ' + distUnit + '</div>' +
+        '<a class="popup-nav" href="' + navUrl + '" target="_blank">Naviga</a>' +
+        '</div>';
+      marker.bindPopup(popupHtml, { maxWidth: 240 });
+      markers.push(marker);
 
-    // card
-    const card = document.createElement('div');
-    card.className = 'dae-card' + (isNearby?' nearby':'');
-    const tags = buildTags(t);
+      var card = document.createElement('div');
+      card.className = 'dae-card' + (isNearby ? ' nearby' : '');
 
-    card.innerHTML = `
-      <div class="card-rank ${i<3?'top'}">${String(i+1).padStart(2,'0')}</div>
-      <div class="card-icon ${t['indoor']==='yes'?'green':''}">♥</div>
-      <div class="card-body">
-        <div class="card-name">${name}</div>
-        <div class="card-address">${addr}</div>
-        <div class="card-tags">${tags}</div>
-      </div>
-      <div class="card-dist">
-        <div class="dist-num ${isFar?'far':''}">${distNum}</div>
-        <div class="dist-unit">${distUnit}</div>
-      </div>`;
+      var rankNum = String(idx + 1);
+      if (rankNum.length < 2) { rankNum = '0' + rankNum; }
 
-    card.addEventListener('click', () => {
-      map.panTo([el._lat, el._lon]);
-      marker.openPopup();
-      document.getElementById('map-container').scrollIntoView({ behavior:'smooth' });
-    });
-    list.appendChild(card);
-  });
+      card.innerHTML =
+        '<div class="card-rank ' + (idx < 3 ? 'top' : '') + '">' + rankNum + '</div>' +
+        '<div class="card-icon' + (t['indoor'] === 'yes' ? ' green' : '') + '">\u2665</div>' +
+        '<div class="card-body">' +
+          '<div class="card-name">' + escHtml(name) + '</div>' +
+          '<div class="card-address">' + escHtml(addr) + '</div>' +
+          '<div class="card-tags">' + buildTags(t) + '</div>' +
+        '</div>' +
+        '<div class="card-dist">' +
+          '<div class="dist-num' + (isFar ? ' far' : '') + '">' + distNum + '</div>' +
+          '<div class="dist-unit">' + distUnit + '</div>' +
+        '</div>';
 
-  // fit bounds
-  const lats = dae.map(d=>d._lat), lons = dae.map(d=>d._lon);
-  const bounds = [[Math.min(...lats,lat)-0.002, Math.min(...lons,lon)-0.002],
-                   [Math.max(...lats,lat)+0.002, Math.max(...lons,lon)+0.002]];
-  map.fitBounds(bounds, { padding: [20,20] });
+      card.addEventListener('click', function() {
+        map.panTo([el._lat, el._lon]);
+        marker.openPopup();
+        document.getElementById('map-container').scrollIntoView({ behavior: 'smooth' });
+      });
+
+      list.appendChild(card);
+    })(dae[i], i);
+  }
+
+  var lats = dae.map(function(d) { return d._lat; });
+  var lons = dae.map(function(d) { return d._lon; });
+  lats.push(lat); lons.push(lon);
+  var bounds = [
+    [Math.min.apply(null, lats) - 0.002, Math.min.apply(null, lons) - 0.002],
+    [Math.max.apply(null, lats) + 0.002, Math.max.apply(null, lons) + 0.002]
+  ];
+  map.fitBounds(bounds, { padding: [20, 20] });
 }
 
 function initMap(lat, lon) {
   if (!map) {
     map = L.map('map', { zoomControl: true, attributionControl: true });
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap contributors', maxZoom: 19
+      attribution: 'OpenStreetMap contributors',
+      maxZoom: 19
     }).addTo(map);
   }
-
-  if (myMarker) map.removeLayer(myMarker);
-  const myEl = document.createElement('div');
+  if (myMarker) { map.removeLayer(myMarker); }
+  var myEl = document.createElement('div');
   myEl.className = 'my-dot';
   myMarker = L.marker([lat, lon], {
-    icon: L.divIcon({ html: myEl, className:'', iconSize:[18,18], iconAnchor:[9,9] }),
+    icon: L.divIcon({ html: myEl, className: '', iconSize: [18, 18], iconAnchor: [9, 9] }),
     zIndexOffset: 1000
-  }).addTo(map).bindPopup('<b>📍 Sei qui</b>');
-
+  }).addTo(map).bindPopup('<b>Sei qui</b>');
   map.setView([lat, lon], 14);
 }
 
 function buildAddr(t) {
-  const parts = [
-    t['addr:street'] && (t['addr:street'] + (t['addr:housenumber'] ? ' ' + t['addr:housenumber'] : '')),
-    t['addr:city'],
-    t['addr:postcode']
-  ].filter(Boolean);
-  return parts.join(', ') || t['description'] || t['operator'] || '';
+  var parts = [];
+  if (t['addr:street']) {
+    parts.push(t['addr:street'] + (t['addr:housenumber'] ? ' ' + t['addr:housenumber'] : ''));
+  }
+  if (t['addr:city']) { parts.push(t['addr:city']); }
+  if (t['addr:postcode']) { parts.push(t['addr:postcode']); }
+  if (parts.length > 0) { return parts.join(', '); }
+  return t['description'] || t['operator'] || '';
 }
 
 function buildTags(t) {
-  const out = [];
-  if (t['access']) out.push(`<span class="tag tag-access">${t['access']}</span>`);
-  if (t['indoor'] === 'yes') out.push('<span class="tag tag-indoor">Interno</span>');
-  else if (t['outdoor'] === 'yes') out.push('<span class="tag tag-outdoor">Esterno</span>');
-  if (t['opening_hours'] === '24/7') out.push('<span class="tag tag-24h">24h/7</span>');
-  if (t['brand']) out.push(`<span class="tag tag-brand">${t['brand']}</span>`);
-  if (t['operator'] && !t['brand']) out.push(`<span class="tag tag-brand">${t['operator']}</span>`);
-  return out.join('');
+  var out = '';
+  if (t['access']) { out += '<span class="tag tag-access">' + escHtml(t['access']) + '</span>'; }
+  if (t['indoor'] === 'yes') { out += '<span class="tag tag-indoor">Interno</span>'; }
+  else if (t['outdoor'] === 'yes') { out += '<span class="tag tag-outdoor">Esterno</span>'; }
+  if (t['opening_hours'] === '24/7') { out += '<span class="tag tag-24h">24h/7</span>'; }
+  if (t['brand']) { out += '<span class="tag tag-brand">' + escHtml(t['brand']) + '</span>'; }
+  else if (t['operator']) { out += '<span class="tag tag-brand">' + escHtml(t['operator']) + '</span>'; }
+  return out;
 }
 
 function haversine(lat1, lon1, lat2, lon2) {
-  const R = 6371000;
-  const dLat = (lat2-lat1) * Math.PI/180;
-  const dLon = (lon2-lon1) * Math.PI/180;
-  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  var R = 6371000;
+  var dLat = (lat2 - lat1) * Math.PI / 180;
+  var dLon = (lon2 - lon1) * Math.PI / 180;
+  var a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+          Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+          Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-function setStatus(msg, isErr=false) {
-  const el = document.getElementById('status');
+function escHtml(str) {
+  if (!str) { return ''; }
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function setStatus(msg, isErr) {
+  var el = document.getElementById('status');
   el.textContent = msg;
   el.className = isErr ? 'error' : '';
 }
 
-function reset() {
-  const btn = document.getElementById('locate-btn');
+function resetBtn() {
+  var btn = document.getElementById('locate-btn');
   btn.classList.remove('loading');
-  btn.querySelector('.btn-label').textContent = 'Trova DAE';
+  document.getElementById('btn-label-text').textContent = 'Trova DAE';
 }
 </script>
 </body>
